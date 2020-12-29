@@ -1,14 +1,10 @@
 package integration;
 
 import model.Instrument;
+import model.Rental;
 import model.Student;
 
-import javax.print.DocFlavor;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,8 +34,9 @@ public class SchoolDAO {
     private PreparedStatement terminateRentalStmt;
     private PreparedStatement currentRentalsStmt;
     private PreparedStatement updateRentalStatusStmt;
-    private PreparedStatement setStudentUserStmt;
+    private PreparedStatement getStudentUserStmt;
     private PreparedStatement checkRentalStatusStmt;
+    private PreparedStatement getStudentRentalsStmt;
     private PreparedStatement getRentalID;
 
     private int currentRentalID;
@@ -52,8 +49,9 @@ public class SchoolDAO {
         try {
             connectToSchoolDB();
             prepareStatements();
-            ResultSet result = getRentalID.executeQuery();
-            currentRentalID = result.getInt(1)+1;
+           ResultSet result = getRentalID.executeQuery();
+           result.next();
+           currentRentalID = result.getInt(PK_ID_COLUMN_NAME)+1;
         } catch (ClassNotFoundException | SQLException exception) {
             throw new SchoolDBException("Could not connect to database.", exception);
         }
@@ -62,7 +60,7 @@ public class SchoolDAO {
 
     private void connectToSchoolDB() throws SQLException, ClassNotFoundException {
        // Class.forName("org.postgresql.Driver");
-        connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/schooldb",
+        connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/project",
                 "postgres", "mhansbo");
         connection.setAutoCommit(false);
     }
@@ -103,20 +101,23 @@ public class SchoolDAO {
      * @param monthsToRent How many months the instrument will be rented for
      * @throws SchoolDBException if failed to rent specified instrument by specified student.
      */
-    public void rentInstrument(int studentID, int instrumentID, int monthsToRent ) throws SchoolDBException {
+    public Rental rentInstrument(int studentID, int instrumentID, int monthsToRent ) throws SchoolDBException {
         String failureMSG = "Could not rent specified instrument for specified student.";
         ResultSet available = null;
+        LocalDate date = LocalDate.now();
+        LocalDate plusMonth = date.plusMonths(monthsToRent);
         try {
-            available = checkRentalStatusStmt.executeQuery(String.valueOf(instrumentID));
+            checkRentalStatusStmt.setInt(1,instrumentID);
+            available = checkRentalStatusStmt.executeQuery();
+            available.next();
+            Boolean result = available.getBoolean(INSTRUMENT_AVAILABLE_COLUMN_NAME);
 
-            if(available.next()){
-                LocalDate date = LocalDate.now();
-                LocalDate plusMonth = date.plusMonths(monthsToRent);
+            if(result){
 
                 int updatedRows = 0;
                 rentInstrumentStmt.setInt(1, currentRentalID);
-                rentInstrumentStmt.setString(2, date.toString());
-                rentInstrumentStmt.setString(3, plusMonth.toString());
+                rentInstrumentStmt.setDate(2, Date.valueOf(date));
+                rentInstrumentStmt.setDate(3, Date.valueOf(plusMonth));
                 rentInstrumentStmt.setInt(4, studentID);
                 rentInstrumentStmt.setInt(5,instrumentID);
                 updatedRows = rentInstrumentStmt.executeUpdate();
@@ -124,11 +125,11 @@ public class SchoolDAO {
                     handleException(failureMSG, null);
                 }
                 else{
-                    currentRentalID+=1;
                     updateRentalStatusStmt.setBoolean(1, false);
-                    updateRentalStatusStmt.setInt(1, instrumentID);
+                    updateRentalStatusStmt.setInt(2, instrumentID);
                     updatedRows = updateRentalStatusStmt.executeUpdate();
                     if (updatedRows != 1) {
+                        connection.rollback();
                         handleException(failureMSG, null);
                     }
                 }
@@ -137,7 +138,9 @@ public class SchoolDAO {
         } catch (SQLException sqlException) {
             handleException(failureMSG,sqlException);
         }
-
+        Rental rental = new Rental(currentRentalID, Date.valueOf(date), Date.valueOf(plusMonth), studentID, instrumentID, false);
+        currentRentalID+=1;
+        return rental;
     }
 
     /**
@@ -152,11 +155,24 @@ public class SchoolDAO {
         Student student = null;
 
         try {
-            setStudentUserStmt.setString(1,UserName);
-            result = setStudentUserStmt.executeQuery();
-            if (result!=null){
+            getStudentUserStmt.setString(1,UserName);
+            result = getStudentUserStmt.executeQuery();
+            if (result.next()){
                 student = new Student(result.getInt(STUDENT_ID_COLUMN_NAME),
                         result.getString(STUDENT_TAG_COLUMN_NAME));
+
+                ArrayList<Rental> rentals = new ArrayList<>();
+                getStudentRentalsStmt.setInt(1, student.getId());
+                result = getStudentRentalsStmt.executeQuery();
+                while(result.next()){
+                    rentals.add(new Rental(result.getInt(PK_ID_COLUMN_NAME),
+                            result.getDate(RENTAL_START_DATE_COLUMN),
+                            result.getDate(RENTAL_END_DATE_COLUMN),
+                            result.getInt(RENTAL_STUDENT_ID_COLUMN),
+                            result.getInt(RENTAL_INSTRUMENT_ID_COLUMN),
+                            result.getBoolean(RENTAL_TERMINATED_COLUMN)));
+                }
+                student.setRentals(rentals);
             }
             connection.commit();
         } catch (SQLException sqlException) {
@@ -165,7 +181,9 @@ public class SchoolDAO {
         return student;
     }
 
-    public void terminateRental(int studentID, int rentalID) throws SchoolDBException {
+
+
+    public void terminateRental(int studentID, int rentalID, int instrumentID) throws SchoolDBException {
         String failureMSG = "Could not terminate specified rental.";
         try {
             terminateRentalStmt.setInt(1,studentID);
@@ -174,6 +192,14 @@ public class SchoolDAO {
             updatedRows = terminateRentalStmt.executeUpdate();
             if(updatedRows!=1)
                 handleException(failureMSG, null);
+
+            updateRentalStatusStmt.setBoolean(1,true);
+            updateRentalStatusStmt.setInt(2, instrumentID);
+            updatedRows = updateRentalStatusStmt.executeUpdate();
+            if(updatedRows!=1){
+                connection.rollback();
+                handleException(failureMSG, null);
+            }
 
             connection.commit();
         } catch (SQLException sqlException) {
@@ -185,28 +211,28 @@ public class SchoolDAO {
 
     private void prepareStatements() throws SQLException {
         listInstrumentsStmt = connection.prepareStatement("SELECT " +
-                PK_ID_COLUMN_NAME+ ","+ INSTRUMENT_NAME_COLUMN_NAME+ "," +
+                PK_ID_COLUMN_NAME+ ","+ INSTRUMENT_NAME_COLUMN_NAME+ "," +INSTRUMENT_TYPE_COLUMN_NAME+","+
                 INSTRUMENT_BRAND_COLUMN_NAME+ ","+INSTRUMENT_PRICE_COLUMN_NAME+","+
                 INSTRUMENT_AVAILABLE_COLUMN_NAME +
-                "FROM "+INSTRUMENT_TABLE_NAME +
-                "WHERE "+INSTRUMENT_AVAILABLE_COLUMN_NAME +"= true AND"+ INSTRUMENT_TYPE_COLUMN_NAME +"= ?");
+                " FROM "+INSTRUMENT_TABLE_NAME +
+                " WHERE "+INSTRUMENT_AVAILABLE_COLUMN_NAME +"= True AND "+ INSTRUMENT_TYPE_COLUMN_NAME +"= ?");
 
-        rentInstrumentStmt = connection.prepareStatement("INSERT INTO"+ RENTAL_TABLE_NAME +
-                "(" +PK_ID_COLUMN_NAME+","+RENTAL_START_DATE_COLUMN+","
-                +RENTAL_END_DATE_COLUMN+", "+STUDENT_ID_COLUMN_NAME+"," +RENTAL_INSTRUMENT_ID_COLUMN+") " +
+        rentInstrumentStmt = connection.prepareStatement("INSERT INTO "+ RENTAL_TABLE_NAME +
+                " (" +PK_ID_COLUMN_NAME+","+RENTAL_START_DATE_COLUMN+","
+                +RENTAL_END_DATE_COLUMN+", "+RENTAL_STUDENT_ID_COLUMN+"," +RENTAL_INSTRUMENT_ID_COLUMN+") " +
                 "VALUES (?, ?, ?, ?, ?)");
 
         checkRentalStatusStmt = connection.prepareStatement( "SELECT "+INSTRUMENT_AVAILABLE_COLUMN_NAME+
-                "FROM "+INSTRUMENT_TABLE_NAME+
-                "WHERE " + PK_ID_COLUMN_NAME +" = ?");
+                " FROM "+INSTRUMENT_TABLE_NAME+
+                " WHERE " + PK_ID_COLUMN_NAME +" = ?");
 
         updateRentalStatusStmt = connection.prepareStatement("UPDATE " +INSTRUMENT_TABLE_NAME+
-                "SET "+INSTRUMENT_AVAILABLE_COLUMN_NAME+" = ?" +
+                " SET "+INSTRUMENT_AVAILABLE_COLUMN_NAME+" = ? " +
                 "WHERE "+PK_ID_COLUMN_NAME+" = ?");
 
         terminateRentalStmt = connection.prepareStatement("UPDATE "+RENTAL_TABLE_NAME+
-                "SET "+RENTAL_TERMINATED_COLUMN+" = true" +
-                "WHERE "+RENTAL_STUDENT_ID_COLUMN+" = ? AND "+RENTAL_INSTRUMENT_ID_COLUMN+" = ?");
+                " SET "+RENTAL_TERMINATED_COLUMN+" = true" +
+                " WHERE "+RENTAL_STUDENT_ID_COLUMN+" = ? AND "+PK_ID_COLUMN_NAME+" = ?");
 
         currentRentalsStmt = connection.prepareStatement("SELECT " +
                 RENTAL_START_DATE_COLUMN +"," +RENTAL_END_DATE_COLUMN+"," +
@@ -216,14 +242,18 @@ public class SchoolDAO {
                 " ON i."+PK_ID_COLUMN_NAME+" = r."+RENTAL_INSTRUMENT_ID_COLUMN+
                 " WHERE r."+RENTAL_STUDENT_ID_COLUMN+" = ? AND r."+RENTAL_TERMINATED_COLUMN+" = false");
 
-        setStudentUserStmt = connection.prepareStatement("SELECT " +
+        getStudentUserStmt = connection.prepareStatement("SELECT " +
                 STUDENT_ID_COLUMN_NAME +", "+ STUDENT_TAG_COLUMN_NAME+
                 " FROM " +STUDENT_TABLE_NAME+
                 " WHERE " + STUDENT_TAG_COLUMN_NAME +"= ?");
 
+        getStudentRentalsStmt = connection.prepareStatement("SELECT *" +
+                " FROM " + RENTAL_TABLE_NAME+
+                " WHERE " + RENTAL_STUDENT_ID_COLUMN +" = ? ");
+
         getRentalID = connection.prepareStatement( "SELECT " +
                 PK_ID_COLUMN_NAME +" FROM "+RENTAL_TABLE_NAME+
-                " ORDER BY " +PK_ID_COLUMN_NAME+ " LIMIT 1");
+                " ORDER BY " +PK_ID_COLUMN_NAME+ " DESC LIMIT 1");
     }
 
     private void handleException(String failureMsg, Exception cause) throws SchoolDBException {

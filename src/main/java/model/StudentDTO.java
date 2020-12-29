@@ -9,6 +9,8 @@ public interface StudentDTO {
 
     public ArrayList<Rental> getRentals();
 
-    public String getStudent_tag();
+    public String getStudentTag();
+
+    public int getId();
 
 }

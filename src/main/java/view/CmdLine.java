@@ -5,7 +5,7 @@ package view;
  * with that command (if any).
  */
 class CmdLine {
-    private static final String PARAM_DELIMETER = " ";
+    private static final String PARAM_DELIMITER = " ";
     private String[] params;
     private Command cmd;
     private final String enteredLine;
@@ -58,7 +58,7 @@ class CmdLine {
             return source;
         }
         String oneOrMoreOccurences = "+";
-        return source.trim().replaceAll(PARAM_DELIMETER + oneOrMoreOccurences, PARAM_DELIMETER);
+        return source.trim().replaceAll(PARAM_DELIMITER + oneOrMoreOccurences, PARAM_DELIMITER);
     }
 
     private void parseCmd(String enteredLine) {
@@ -69,7 +69,7 @@ class CmdLine {
                 cmd = Command.ILLEGAL_COMMAND;
                 return;
             }
-            String[] enteredTokens = trimmed.split(PARAM_DELIMETER);
+            String[] enteredTokens = trimmed.split(PARAM_DELIMITER);
             cmd = Command.valueOf(enteredTokens[cmdNameIndex].toUpperCase());
         } catch (Exception failedToReadCmd) {
             cmd = Command.ILLEGAL_COMMAND;
@@ -86,7 +86,7 @@ class CmdLine {
             params = null;
             return;
         }
-        params = paramPartOfCmd.split(PARAM_DELIMETER);
+        params = paramPartOfCmd.split(PARAM_DELIMITER);
     }
 
     private String removeCmd(String enteredLine) {

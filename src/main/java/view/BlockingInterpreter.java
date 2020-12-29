@@ -1,9 +1,13 @@
 package view;
 
 import controller.Controller;
+import model.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+import static java.lang.Integer.parseInt;
 
 /**
  * Reads and interprets user commands. This command interpreter is blocking, the user
@@ -14,6 +18,7 @@ public class BlockingInterpreter {
     private final Scanner console = new Scanner(System.in);
     private Controller ctrl;
     private boolean keepReceivingCmds = false;
+    private Student currentUser = null;
 
     /**
      * Creates a new instance that will use the specified controller for all operations.
@@ -53,45 +58,68 @@ public class BlockingInterpreter {
                     case QUIT:
                         keepReceivingCmds = false;
                         break;
-                    case NEW:
-                        ctrl.createAccount(cmdLine.getParameter(0));
-                        break;
-                    case DELETE:
-                        ctrl.deleteAccount(cmdLine.getParameter(0));
-                        break;
-                    case LIST:
-                        List<? extends AccountDTO> accounts = null;
-                        if (cmdLine.getParameter(0).equals("")) {
-                            accounts = ctrl.getAllAccounts();
-                        } else {
-                            accounts = ctrl.getAccountsForHolder(cmdLine.getParameter(0));
+                    case USER:
+                        Student student = ctrl.getStudent(cmdLine.getParameter(0));
+                        if(student!= null){
+                            currentUser = student;
                         }
-                        for (AccountDTO account : accounts) {
-                            System.out.println("acct no: " + account.getAccountNo() + ", "
-                                    + "holder: " + account.getHolderName() + ", "
-                                    + "balance: " + account.getBalance());
+                        else
+                            System.out.println("No such user.");
+
+                        break;
+                    case TERMINATE:
+                        ArrayList<Rental> userRentals= currentUser.getRentals();
+                        Rental rental = null;
+                        for(Rental r: userRentals){
+                            if(r.getId() == parseInt(cmdLine.getParameter(0))&& !r.getIsTerminated()){
+                                rental = r;
+                                break;
+                            }
+                        }
+                        if(rental != null)
+                            ctrl.terminateRental(currentUser, rental);
+                        else
+                            System.out.println("Specified rental could not be found on current user.");
+                        break;
+                    case SEARCH:
+                        List<? extends InstrumentDTO> instruments = null;
+
+                        instruments = ctrl.getInstrumentsOfType(cmdLine.getParameter(0));
+
+                        for (InstrumentDTO instrument : instruments) {
+                            System.out.println("id: " + instrument.getId() + ", "
+                                   + "name: " + instrument.getName() + ", "
+                                    + "brand: " + instrument.getBrand() + ", "
+                                    + "fee: " + instrument.getFee());
                         }
                         break;
-                    case DEPOSIT:
-                        ctrl.deposit(cmdLine.getParameter(0),
-                                Integer.parseInt(cmdLine.getParameter(1)));
-                        break;
-                    case WITHDRAW:
-                        ctrl.withdraw(cmdLine.getParameter(0),
-                                Integer.parseInt(cmdLine.getParameter(1)));
-                        break;
-                    case BALANCE:
-                        AccountDTO acct = ctrl.getAccount(cmdLine.getParameter(0));
-                        if (acct != null) {
-                            System.out.println(acct.getBalance());
-                        } else {
-                            System.out.println("No such account");
+                    case RENT:
+                        if(currentUser!=null) {
+                            ctrl.rentInstrument(currentUser, parseInt(cmdLine.getParameter(0)), parseInt(cmdLine.getParameter(1)));
                         }
+                        else
+                            System.out.println("Please use USER to choose who to rent the instrument for.");
+                        break;
+                    case RENTALS:
+                        List<? extends RentalDTO> rentals = null;
+                        if(currentUser!=null) {
+                            rentals = currentUser.getRentals();
+                            for (RentalDTO r : rentals) {
+                                if(!r.getIsTerminated()) {
+                                    System.out.println("rental id: " + r.getId() + ", "
+                                            + "rental date: " + r.getRentalDate() + ", "
+                                            + "return date: " + r.getReturnDate() + ", "
+                                            + "instrument id: " + r.getInstrumentId());
+                                }
+                            }
+                        }
+                        else System.out.println("Please use USER to choose which users rentals to view.");
+
                         break;
                     default:
                         System.out.println("illegal command");
                 }
-            } catch (Exception e) {
+            } catch (Exception | StudentException e) {
                 System.out.println("Operation failed");
                 System.out.println(e.getMessage());
                 e.printStackTrace();

@@ -2,20 +2,71 @@ package model;
 
 import java.util.Date;
 
-public class Rental {
+public class Rental implements RentalDTO {
     private int id;
-    private String rental_date;
-    private String return_date;
-    private int student_id;
-    private int instrument_id;
-    private Boolean is_terminated;
+    private Date rentalDate;
+    private Date returnDate;
+    private int studentId;
+    private int instrumentId;
+    private Boolean isTerminated;
 
-    public Rental(int id, String rental_date, String return_date, int student_id, int instrument_id, Boolean is_terminated){
+    public Rental(int id, Date rentalDate, Date returnDate, int studentId, int instrumentId, Boolean isTerminated){
         this.id = id;
-        this.rental_date=rental_date;
-        this.return_date=return_date;
-        this.student_id=student_id;
-        this.instrument_id=instrument_id;
-        this.is_terminated=is_terminated;
+        this.rentalDate =rentalDate;
+        this.returnDate =returnDate;
+        this.studentId =studentId;
+        this.instrumentId = instrumentId;
+        this.isTerminated =isTerminated;
+    }
+
+    public void setIsTerminated(Boolean b){
+        isTerminated=b;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public Boolean getIsTerminated() {
+        return isTerminated;
+    }
+
+    public int getInstrumentId() {
+        return instrumentId;
+    }
+
+    public int getStudentId() {
+        return studentId;
+    }
+
+    public Date getRentalDate() {
+        return rentalDate;
+    }
+
+    public Date getReturnDate() {
+        return returnDate;
+    }
+
+    /**
+     * @return A string representation of all relevant fields in this object.
+     */
+    @Override
+    public String toString() {
+        StringBuilder stringRepresentation = new StringBuilder();
+        stringRepresentation.append("Instrument: [");
+        stringRepresentation.append("id: ");
+        stringRepresentation.append(id);
+        stringRepresentation.append(", rental date: ");
+        stringRepresentation.append(rentalDate);
+        stringRepresentation.append(", type: return date");
+        stringRepresentation.append(returnDate);
+        stringRepresentation.append(", student id: ");
+        stringRepresentation.append(studentId);
+        stringRepresentation.append(", instrument id: ");
+        stringRepresentation.append(instrumentId);
+        stringRepresentation.append(", inactive: ");
+        stringRepresentation.append(isTerminated);
+        stringRepresentation.append("]");
+        return stringRepresentation.toString();
     }
 }

@@ -5,29 +5,25 @@ package view;
  */
 public enum Command {
     /**
-     * Creates a new account.
+     * Sets a current user to specified student.
      */
-    NEW,
+    USER,
     /**
-     * Lists all existing accounts.
+     * Lists all instrument by specified type that are available to rent.
      */
-    LIST,
+    SEARCH,
     /**
-     * Deletes the specified account.
+     * Terminates a specified rental.
      */
-    DELETE,
+    TERMINATE,
     /**
-     * Deposits the specified amount to the specified account
+     * Rents specified instrument on current user.
      */
-    DEPOSIT,
+    RENT,
     /**
-     * Withdraws the specified amount from the specified account
+     * Lists all rentals on current user.
      */
-    WITHDRAW,
-    /**
-     * Lists the balance of the specified account.
-     */
-    BALANCE,
+    RENTALS,
     /**
      * Lists all commands.
      */
