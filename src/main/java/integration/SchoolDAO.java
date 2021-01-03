@@ -248,8 +248,8 @@ public class SchoolDAO {
                 " WHERE " + STUDENT_TAG_COLUMN_NAME +"= ?");
 
         getStudentRentalsStmt = connection.prepareStatement("SELECT *" +
-                " FROM " + RENTAL_TABLE_NAME+
-                " WHERE " + RENTAL_STUDENT_ID_COLUMN +" = ? ");
+                " FROM " + RENTAL_TABLE_NAME +
+                " WHERE " + RENTAL_STUDENT_ID_COLUMN +" = ?");
 
         getRentalID = connection.prepareStatement( "SELECT " +
                 PK_ID_COLUMN_NAME +" FROM "+RENTAL_TABLE_NAME+
