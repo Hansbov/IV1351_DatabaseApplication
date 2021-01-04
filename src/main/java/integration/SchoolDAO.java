@@ -129,7 +129,6 @@ public class SchoolDAO {
                     updateRentalStatusStmt.setInt(2, instrumentID);
                     updatedRows = updateRentalStatusStmt.executeUpdate();
                     if (updatedRows != 1) {
-                        connection.rollback();
                         handleException(failureMSG, null);
                     }
                 }
@@ -161,18 +160,26 @@ public class SchoolDAO {
                 student = new Student(result.getInt(STUDENT_ID_COLUMN_NAME),
                         result.getString(STUDENT_TAG_COLUMN_NAME));
 
-                ArrayList<Rental> rentals = new ArrayList<>();
-                getStudentRentalsStmt.setInt(1, student.getId());
-                result = getStudentRentalsStmt.executeQuery();
-                while(result.next()){
-                    rentals.add(new Rental(result.getInt(PK_ID_COLUMN_NAME),
-                            result.getDate(RENTAL_START_DATE_COLUMN),
-                            result.getDate(RENTAL_END_DATE_COLUMN),
-                            result.getInt(RENTAL_STUDENT_ID_COLUMN),
-                            result.getInt(RENTAL_INSTRUMENT_ID_COLUMN),
-                            result.getBoolean(RENTAL_TERMINATED_COLUMN)));
+                if(student!=null) {
+                    ArrayList<Rental> rentals = new ArrayList<>();
+                    getStudentRentalsStmt.setInt(1, student.getId());
+                    result = getStudentRentalsStmt.executeQuery();
+                    while (result.next()) {
+                        rentals.add(new Rental(result.getInt(PK_ID_COLUMN_NAME),
+                                result.getDate(RENTAL_START_DATE_COLUMN),
+                                result.getDate(RENTAL_END_DATE_COLUMN),
+                                result.getInt(RENTAL_STUDENT_ID_COLUMN),
+                                result.getInt(RENTAL_INSTRUMENT_ID_COLUMN),
+                                result.getBoolean(RENTAL_TERMINATED_COLUMN)));
+                    }
+                    student.setRentals(rentals);
                 }
-                student.setRentals(rentals);
+                else{
+                    handleException(failureMSG, null);
+                }
+            }
+            else {
+                handleException(failureMSG,null);
             }
             connection.commit();
         } catch (SQLException sqlException) {
@@ -197,7 +204,6 @@ public class SchoolDAO {
             updateRentalStatusStmt.setInt(2, instrumentID);
             updatedRows = updateRentalStatusStmt.executeUpdate();
             if(updatedRows!=1){
-                connection.rollback();
                 handleException(failureMSG, null);
             }
 
