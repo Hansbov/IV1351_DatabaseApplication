@@ -3,7 +3,7 @@ package model;
 /**
  * Thrown when create, read, update or delete of a Student fails.
  */
-public class StudentException extends Throwable {
+public class StudentException extends Exception {
     /**
      * Create a new instance thrown because of the specified reason.
      *

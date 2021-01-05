@@ -3,6 +3,7 @@ package integration;
 import model.Instrument;
 import model.Rental;
 import model.Student;
+import model.StudentException;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -96,14 +97,15 @@ public class SchoolDAO {
 
     /**
      * Rents an instrument for a specific student.
-     * @param studentID the ID of the student to who wants to rent the instrument
+     * @param student the student to who wants to rent the instrument
      * @param instrumentID the ID of the instrument to be rented
      * @param monthsToRent How many months the instrument will be rented for
      * @throws SchoolDBException if failed to rent specified instrument by specified student.
      */
-    public Rental rentInstrument(int studentID, int instrumentID, int monthsToRent ) throws SchoolDBException {
+    public void rentInstrument(Student student, int instrumentID, int monthsToRent ) throws SchoolDBException {
         String failureMSG = "Could not rent specified instrument for specified student.";
         ResultSet available = null;
+        int studentID = student.getId();
         LocalDate date = LocalDate.now();
         LocalDate plusMonth = date.plusMonths(monthsToRent);
         try {
@@ -132,14 +134,20 @@ public class SchoolDAO {
                         handleException(failureMSG, null);
                     }
                 }
+                Rental rental = new Rental(currentRentalID,
+                        Date.valueOf(date),
+                        Date.valueOf(plusMonth),
+                        studentID,
+                        instrumentID,
+                        false);
+                currentRentalID+=1;
+                student.addRental(rental);
+
                 connection.commit();
             }
-        } catch (SQLException sqlException) {
-            handleException(failureMSG,sqlException);
+        } catch (SQLException | StudentException sqlException) {
+            handleException(failureMSG, sqlException);
         }
-        Rental rental = new Rental(currentRentalID, Date.valueOf(date), Date.valueOf(plusMonth), studentID, instrumentID, false);
-        currentRentalID+=1;
-        return rental;
     }
 
     /**
@@ -182,7 +190,7 @@ public class SchoolDAO {
                 handleException(failureMSG,null);
             }
             connection.commit();
-        } catch (SQLException sqlException) {
+        } catch (SQLException | StudentException sqlException) {
             handleException(failureMSG,sqlException);
         }
         return student;

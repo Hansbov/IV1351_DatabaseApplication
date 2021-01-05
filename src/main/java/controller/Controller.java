@@ -46,11 +46,9 @@ private final SchoolDAO schoolDAO;
      * @throws StudentException if student two or more active rentals.
      */
     public void rentInstrument(Student student, int instrumentToRent, int numberOfMonth) throws RentalException, StudentException {
-        Rental rental = null;
         if(student.getActiveRentals() < 2) {
             try {
-                rental = schoolDAO.rentInstrument(student.getId(), instrumentToRent, numberOfMonth);
-                student.addRental(rental);
+                schoolDAO.rentInstrument(student, instrumentToRent, numberOfMonth);
             } catch (SchoolDBException e) {
                 throw new RentalException("Unable to make rental.", e);
             }

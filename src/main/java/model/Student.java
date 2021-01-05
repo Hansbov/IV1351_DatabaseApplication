@@ -16,11 +16,11 @@ public class Student implements StudentDTO {
         activeRentals = 0;
     }
 
-    public Student(int id, String studentTag, ArrayList<Rental> rentals, int activeRentals){
+    public Student(int id, String studentTag, ArrayList<Rental> rentals, int activeRentals) throws StudentException {
         this.id=id;
         this.studentTag=studentTag;
-        this.rentals=rentals;
         this.activeRentals=activeRentals;
+        this.setRentals(rentals);
     }
 
     /**
@@ -40,23 +40,30 @@ public class Student implements StudentDTO {
      * Adds rental to @rentals and adds one to @activeRentals if rental in not flagged as terminated.
      * @param rental the rental to add to ArrayList @rentals
      */
-    public void addRental(Rental rental){
+    public void addRental(Rental rental) throws StudentException {
+        if(activeRentals < 2){
         this.rentals.add(rental);
         if(!rental.getIsTerminated())
-            activeRentals+=1;
+            activeRentals+=1;}
+        else
+            throw new StudentException("Student cannot rent more than two instruments at a time.");
     }
 
     /**
      * Sets @rentals to specified ArrayList, and sets @activeRentals to correct value.
      * @param rentals
      */
-    public void setRentals(ArrayList<Rental> rentals) {
-        this.rentals = rentals;
-        activeRentals=0;
+    public void setRentals(ArrayList<Rental> rentals) throws StudentException {
+        int activeRent = 0;
         for (Rental r: this.rentals){
             if(!r.getIsTerminated())
-                this.activeRentals+=1;
+                activeRent+=1;
         }
+        if(activeRent <= 2) {
+            this.activeRentals = activeRent;
+            this.rentals = rentals;
+        }
+        else throw new StudentException("Student cannot rent more than 2 instruments at a time.");
     }
 
     public ArrayList<Rental> getRentals() {
