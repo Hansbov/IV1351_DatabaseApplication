@@ -62,6 +62,7 @@ public class BlockingInterpreter {
                         Student student = ctrl.getStudent(cmdLine.getParameter(0));
                         if(student!= null){
                             currentUser = student;
+                            System.out.println("New user: " + currentUser.getStudentTag());
                         }
                         else
                             System.out.println("No such user.");
@@ -104,14 +105,17 @@ public class BlockingInterpreter {
                         List<? extends RentalDTO> rentals = null;
                         if(currentUser!=null) {
                             rentals = currentUser.getRentals();
-                            for (RentalDTO r : rentals) {
-                                if(!r.getIsTerminated()) {
-                                    System.out.println("rental id: " + r.getId() + ", "
-                                            + "rental date: " + r.getRentalDate() + ", "
-                                            + "return date: " + r.getReturnDate() + ", "
-                                            + "instrument id: " + r.getInstrumentId());
+                            if(rentals.size() != 0) {
+                                for (RentalDTO r : rentals) {
+                                    if (!r.getIsTerminated()) {
+                                        System.out.println("rental id: " + r.getId() + ", "
+                                                + "rental date: " + r.getRentalDate() + ", "
+                                                + "return date: " + r.getReturnDate() + ", "
+                                                + "instrument id: " + r.getInstrumentId());
+                                    }
                                 }
                             }
+                            else System.out.println("No rentals found on student");
                         }
                         else System.out.println("Please use USER to choose which users rentals to view.");
 
@@ -119,7 +123,7 @@ public class BlockingInterpreter {
                     default:
                         System.out.println("illegal command");
                 }
-            } catch (Exception | StudentException e) {
+            } catch (Exception e) {
                 System.out.println("Operation failed");
                 System.out.println(e.getMessage());
                 e.printStackTrace();

@@ -1,7 +1,7 @@
 package integration;
 
 import model.Rental;
-import model.StudentDTO;
+import model.Student;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SchoolDAOTest {
     SchoolDAO schoolDAO;
-    StudentDTO student;
+    Student student;
     Rental rental;
 
     @BeforeEach
@@ -52,7 +52,7 @@ class SchoolDAOTest {
     @Test
     void rentInstrument() {
         try {
-            rental = schoolDAO.rentInstrument(student.getId(),1,1);
+            schoolDAO.rentInstrument(student,1,1);
             assertNotNull(rental);
             assertEquals(student.getId(), rental.getStudentId());
             assertEquals(1, rental.getInstrumentId());
